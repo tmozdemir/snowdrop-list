@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>School Diary — Snowdrop Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --paper:#F7F3EC; --paper-raised:#FFFFFF; --ink:#2B2924; --ink-soft:#6B675F;
+    --line:#DED6C7; --path:#3F6C6B; --path-soft:#DCE7E6; --brick:#A85A3E;
+    --brick-soft:#F1DFD6; --sage:#5E7A52; --sage-soft:#E3E9DC; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Public Sans', system-ui, sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3{ font-family:'Fraunces', Georgia, serif; font-weight:600; margin:0; letter-spacing:-0.01em; }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--path); }
+  a{ color:var(--path); }
+  button{ font-family:inherit; }
+  .wrap{ max-width:720px; margin:0 auto; padding:0 20px 80px; }
+  .back-link{ font-size:0.85rem; color:var(--ink-soft); text-decoration:none; }
+  .site-nav{ display:flex; gap:0; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .site-nav a{
+    font-family:'IBM Plex Mono', monospace; font-size:0.78rem; letter-spacing:0.02em;
+    padding:8px 4px; margin-right:20px; color:var(--ink-soft); text-decoration:none;
+    border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap;
+  }
+  .site-nav a.active{ color:var(--ink); border-bottom-color:var(--path); font-weight:600; }
+  header.hero{ padding:36px 0 8px; }
+  .hero-title{ font-size:clamp(1.8rem, 5vw, 2.4rem); margin-top:6px; }
+  .hero-sub{ color:var(--ink-soft); max-width:60ch; margin-top:10px; font-size:1rem; }
+
+  .btn{ border:1px solid var(--ink); background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:999px; font-size:0.92rem; font-weight:600; cursor:pointer; }
+  .btn:hover{ opacity:0.85; }
+  .btn.secondary{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn.quiet{ background:transparent; border:none; color:var(--ink-soft); text-decoration:underline; padding:6px 4px; font-size:0.85rem; }
+  .btn.danger{ background:var(--brick); border-color:var(--brick); }
+  .btn:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn.small{ padding:7px 14px; font-size:0.82rem; }
+
+  input[type=text], input[type=search], input[type=password], input[type=date]{
+    font-family:inherit; font-size:1rem; padding:11px 14px; border-radius:10px;
+    border:1px solid var(--line); background:var(--paper-raised); color:var(--ink); width:100%;
+  }
+  input:focus, button:focus-visible{ outline:2px solid var(--path); outline-offset:2px; }
+  .field{ margin-top:14px; }
+  .field label{ display:block; font-size:0.78rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px; font-family:'IBM Plex Mono', monospace; letter-spacing:0.02em; }
+  .field-hint{ font-size:0.78rem; color:var(--ink-soft); margin-top:4px; }
+
+  .card{ background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-top:16px; }
+  .status-msg{ font-size:0.85rem; margin-top:14px; padding:10px 12px; border-radius:8px; }
+  .status-msg.error{ background:var(--brick-soft); color:var(--brick); }
+  .status-msg.ok{ background:var(--sage-soft); color:var(--sage); }
+  .empty{ text-align:center; padding:30px 20px; color:var(--ink-soft); border:1px dashed var(--line); border-radius:var(--radius); margin-top:16px; }
+
+  .year-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .year-chip{
+    font-family:'IBM Plex Mono', monospace; font-size:0.8rem; padding:7px 14px; border-radius:999px;
+    border:1px solid var(--line); background:var(--paper-raised); cursor:pointer;
+  }
+  .year-chip.active{ background:var(--sage); border-color:var(--sage); color:#fff; }
+  .toggle-row{ display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--ink-soft); margin-top:12px; }
+
+  .event-row{ display:flex; gap:14px; padding:14px 0; border-top:1px solid var(--line); align-items:flex-start; }
+  .event-row:first-child{ border-top:none; }
+  .event-row.dimmed{ opacity:0.4; }
+  .event-date{
+    flex:0 0 56px; text-align:center; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:6px 4px;
+  }
+  .event-date .dow{ font-family:'IBM Plex Mono', monospace; font-size:0.62rem; color:var(--ink-soft); text-transform:uppercase; }
+  .event-date .dnum{ font-family:'Fraunces', serif; font-weight:600; font-size:1.15rem; line-height:1.1; }
+  .event-date .mon{ font-size:0.68rem; color:var(--ink-soft); }
+  .event-body{ flex:1; }
+  .event-title{ font-weight:600; }
+  .event-tags{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .tag{ font-family:'IBM Plex Mono', monospace; font-size:0.68rem; padding:3px 9px; border-radius:999px; background:var(--path-soft); color:var(--path); }
+  .tag.all-school{ background:var(--sage-soft); color:var(--sage); }
+  .event-manage{ margin-top:6px; }
+  .event-manage button{ background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-size:0.78rem; padding:0; margin-right:12px; }
+
+  .month-heading{ font-family:'IBM Plex Mono', monospace; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--path); margin:22px 0 4px; }
+
+  .pe-row{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; font-size:0.86rem; }
+  .pe-row.match{ background:var(--sage-soft); }
+  .pe-row .pe-clan{ flex:0 0 130px; font-weight:600; }
+  .pe-row .pe-stage{ flex:0 0 34px; font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--ink-soft); }
+  .pe-row .pe-days{ flex:1; color:var(--ink-soft); }
+  .month-heading:first-of-type{ margin-top:6px; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(43,41,36,0.45); display:none; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; z-index:50; }
+  .overlay.open{ display:flex; }
+  .modal{ background:var(--paper-raised); border-radius:16px; max-width:440px; width:100%; padding:28px; margin-bottom:40px; position:relative; }
+  .close-x{ position:absolute; top:16px; right:20px; background:none; border:none; font-size:1.3rem; color:var(--ink-soft); cursor:pointer; }
+  .checkbox-row{ display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
+  .checkbox-row label{ display:flex; align-items:center; gap:6px; font-size:0.85rem; }
+
+  footer{ margin-top:40px; padding-top:20px; border-top:1px solid var(--line); font-size:0.82rem; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <nav class="site-nav">
+      <a href="/">🏘️&nbsp;People</a>
+      <a href="/diary.html" class="active">📅&nbsp;School Diary</a>
+      <a href="/lunch.html">🍱&nbsp;School Lunches</a>
+    </nav>
+    <div class="eyebrow" style="margin-top:14px;">Snowdrop Path · Calderwood Primary</div>
+    <h1 class="hero-title">School Diary</h1>
+    <p class="hero-sub">Term dates, holidays, and school events in one place. Pick the year groups you need to know about and everything else fades back — or export it all straight to your calendar.</p>
+  </header>
+
+  <div id="loadingMsg" class="empty">Loading…</div>
+
+  <div id="mainContent" style="display:none;">
+
+    <div class="card">
+      <h2 style="font-size:1.05rem;">Which year groups are you interested in?</h2>
+      <p class="field-hint">Whole-school events always show. Pick specific years to highlight what else matters to you.</p>
+      <div class="year-chips" id="yearChips"></div>
+      <div class="toggle-row">
+        <input type="checkbox" id="hideOthers">
+        <label for="hideOthers">Hide events that aren't relevant to me</label>
+      </div>
+
+      <div id="rememberWrap" style="margin-top:16px; border-top:1px solid var(--line); padding-top:14px;">
+        <div id="rememberPrompt">
+          <p class="field-hint">Want this remembered next time you visit? <button type="button" class="btn quiet" id="openFindHousehold" style="padding:0;">Find your household</button></p>
+        </div>
+        <div id="rememberedAs" style="display:none;">
+          <p class="field-hint">Remembering your picks as <strong id="rememberedName"></strong>. <button type="button" class="btn quiet" id="forgetHousehold" style="padding:0;">Not you?</button></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <h2 style="font-size:1.05rem;">Export to your calendar</h2>
+        <button class="btn secondary small" id="exportIcsBtn">Download .ics</button>
+      </div>
+      <p class="field-hint">Includes whole-school events plus whichever year groups you've picked above. Works with Apple Calendar, Google Calendar, and Outlook.</p>
+    </div>
+
+    <div class="card">
+      <div id="peDaysToggle" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+        <h2 style="font-size:1.05rem;">PE Days — Term 1, 2026/27</h2>
+        <span class="eyebrow" id="peDaysChevron">Show ▾</span>
+      </div>
+      <div id="peDaysBody" style="display:none;">
+        <p class="field-hint" style="margin-top:10px;">From the school's published PE kit letter, starting week beginning 17 August. Your selected year groups above are highlighted.</p>
+        <div id="peDaysList" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <div id="eventsWrap"></div>
+
+    <div class="card" id="adminCard">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <h2 style="font-size:1.05rem;">Manage events</h2>
+        <div style="display:flex; gap:8px;">
+          <button class="btn secondary small" id="bulkSyncBtn">Bulk sync</button>
+          <button class="btn secondary small" id="addEventBtn">+ Add event</button>
+        </div>
+      </div>
+      <p class="field-hint">Only the page admin can add, edit, or remove events. "Bulk sync" applies a batch of updates in one go — paste what Claude gives you when you ask it to check for changes.</p>
+    </div>
+  </div>
+
+  <footer>
+    Term dates and holidays sourced from West Lothian Council's published 2026/2027 calendar for Calderwood Primary. Specific class and year-group events (parents' evenings, trips, shows) are added by the page admin as the school announces them — the council doesn't publish those centrally, so check with the school directly for anything not listed here.
+  </footer>
+</div>
+
+<!-- Find household (to remember filter) -->
+<div class="overlay" id="findOverlay">
+  <div class="modal">
+    <button class="close-x" id="closeFindOverlay" aria-label="Close">×</button>
+    <h2 style="font-size:1.15rem;">Find your household</h2>
+    <p class="field-hint" style="margin-top:8px;">Uses the same household and passcode as the street directory.</p>
+    <div class="field">
+      <input type="search" id="hhFindInput" placeholder="Type your household name…">
+    </div>
+    <div id="hhFindResults" style="margin-top:8px;"></div>
+    <div id="hhPasscodeStep" style="display:none; margin-top:14px;">
+      <div class="field" style="margin-top:0;">
+        <label for="hhPasscodeInput">Passcode for <span id="hhHouseholdName"></span></label>
+        <input type="password" id="hhPasscodeInput" placeholder="Your directory passcode" autocomplete="current-password">
+      </div>
+      <div id="hhStatus"></div>
+      <button class="btn" id="hhUnlockBtn" style="margin-top:10px;">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin unlock -->
+<div class="overlay" id="adminOverlay">
+  <div class="modal" style="max-width:380px;">
+    <button class="close-x" id="closeAdminOverlay" aria-label="Close">×</button>
+    <h2 style="font-size:1.15rem;">Admin passcode</h2>
+    <p class="field-hint" style="margin-top:8px;">Same admin passcode as the street directory.</p>
+    <div class="field">
+      <input type="password" id="adminPasscodeInput" placeholder="Admin passcode" autocomplete="current-password">
+    </div>
+    <div id="adminStatus"></div>
+    <button class="btn" id="adminUnlockBtn" style="margin-top:10px;">Unlock</button>
+  </div>
+</div>
+
+<!-- Bulk sync -->
+<div class="overlay" id="bulkSyncOverlay">
+  <div class="modal" style="max-width:520px;">
+    <button class="close-x" id="closeBulkSync" aria-label="Close">×</button>
+    <h2 style="font-size:1.15rem;">Bulk sync events</h2>
+    <p class="field-hint" style="margin-top:8px;">Paste the JSON list Claude gives you after checking for updates. Matches existing events by date + title (case-insensitive) and updates them; anything new gets added. Nothing is deleted automatically.</p>
+    <div class="field">
+      <textarea id="bulkSyncInput" rows="10" style="width:100%; font-family:'Work Sans',sans-serif; font-size:16px; padding:10px 12px; border-radius:9px; border:1.5px solid var(--line-strong);" placeholder='[{"title":"...", "date":"YYYY-MM-DD", "allSchool":true, "years":[]}]'></textarea>
+    </div>
+    <div id="bulkSyncStatus"></div>
+    <button class="btn" id="applyBulkSyncBtn" style="margin-top:10px;">Apply</button>
+  </div>
+</div>
+
+<!-- Add/edit event -->
+<div class="overlay" id="eventOverlay">
+  <div class="modal">
+    <button class="close-x" id="closeEventOverlay" aria-label="Close">×</button>
+    <h2 id="eventModalTitle" style="font-size:1.15rem;">Add event</h2>
+    <div class="field">
+      <label for="ev_title">Event title</label>
+      <input type="text" id="ev_title" placeholder="e.g. October holiday, P4 class assembly">
+    </div>
+    <div class="field">
+      <label for="ev_date">Date</label>
+      <input type="date" id="ev_date">
+    </div>
+    <div class="field">
+      <label for="ev_end_date">End date <span style="text-transform:none; font-weight:400;">(optional, for multi-day events)</span></label>
+      <input type="date" id="ev_end_date">
+    </div>
+    <div class="field">
+      <label><input type="checkbox" id="ev_all_school"> Whole school</label>
+    </div>
+    <div class="field" id="ev_years_wrap">
+      <label>Applies to</label>
+      <div class="checkbox-row" id="ev_years_checkboxes"></div>
+    </div>
+    <div id="eventStatus"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px;">
+      <button type="button" class="btn quiet" id="deleteEventBtn" style="display:none; color:#A85A3E;">Delete</button>
+      <button type="button" class="btn" id="saveEventBtn">Save event</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const firebaseConfig = {
+    apiKey: "AIzaSyBIG6-Q2UfS3aAWlf2L8Q140llrMsSkyKU",
+    authDomain: "snowdrop-pages.firebaseapp.com",
+    projectId: "snowdrop-pages",
+    storageBucket: "snowdrop-pages.firebasestorage.app",
+    messagingSenderId: "157336705042",
+    appId: "1:157336705042:web:346bd1d021ffb296c420cb"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const ENTRIES_DOC = db.collection('street-directory').doc('entries');
+  const SETTINGS_DOC = db.collection('street-directory').doc('settings');
+  const EVENTS_DOC = db.collection('street-directory').doc('diary-events');
+  function filterDocFor(entryId){ return db.collection('street-directory').doc('diary_' + entryId); }
+
+  const $ = (id) => document.getElementById(id);
+  const YEAR_GROUPS = ['Nursery','P1','P2','P3','P4','P5','P6','P7'];
+
+  function escapeHtml(str){
+    return (str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  async function hashText(text){
+    const enc = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function toISO(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function parseISO(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Seed data — official West Lothian Council term/holiday/in-service dates for
+  // Calderwood Primary, 2026/2027. Class and year-group specific events (parents'
+  // evenings, trips, shows) aren't published centrally, so those start empty —
+  // add them via "Manage events" as the school announces them.
+  // Official PE Days list, Term 1 2026/27 — from the school's published PE kit letter
+  const PE_DAYS = [
+    {clan:"Mull", stage:"P1", indoor:"Thursday", outdoor:"Tuesday"},
+    {clan:"Orkney", stage:"P1", indoor:"Thursday", outdoor:"Wednesday"},
+    {clan:"Shetland", stage:"P1", indoor:"Monday", outdoor:"Thursday"},
+    {clan:"Skye", stage:"P1", indoor:"Monday", outdoor:"Tuesday"},
+    {clan:"Bluebell", stage:"P1", indoor:"Monday", outdoor:""},
+    {clan:"Bramble", stage:"P2/1", indoor:"Thursday", outdoor:"Monday"},
+    {clan:"Thistle", stage:"P2", indoor:"Tuesday", outdoor:"Thursday"},
+    {clan:"Doune", stage:"P2", indoor:"Tuesday", outdoor:"Monday"},
+    {clan:"Drummond", stage:"P2", indoor:"Tuesday", outdoor:"Wednesday"},
+    {clan:"Balmoral", stage:"P3", indoor:"Wednesday", outdoor:"Thursday"},
+    {clan:"Blair", stage:"P3", indoor:"Wednesday", outdoor:"Monday"},
+    {clan:"Ness", stage:"P3", indoor:"Wednesday", outdoor:"Monday"},
+    {clan:"Leven", stage:"P3", indoor:"Wednesday", outdoor:"Monday"},
+    {clan:"Rannoch", stage:"P4", indoor:"Friday", outdoor:"Tuesday"},
+    {clan:"Tay", stage:"P4", indoor:"Thursday", outdoor:"Tuesday"},
+    {clan:"Tummel", stage:"P4", indoor:"Thursday", outdoor:"Wednesday"},
+    {clan:"Ben Lawers", stage:"P5", indoor:"Wednesday", outdoor:"Thursday"},
+    {clan:"Ben Lomond", stage:"P5", indoor:"Wednesday", outdoor:"Thursday"},
+    {clan:"Schiehallion", stage:"P5", indoor:"Wednesday", outdoor:"Tuesday"},
+    {clan:"Edinburgh", stage:"P6", indoor:"Tuesday", outdoor:"Thursday"},
+    {clan:"Perth", stage:"P6", indoor:"Tuesday", outdoor:"Wednesday"},
+    {clan:"Aberdeen", stage:"P6", indoor:"Tuesday", outdoor:"Wednesday"},
+    {clan:"Burns", stage:"P7", indoor:"Monday", outdoor:"Friday"},
+    {clan:"Mackintosh", stage:"P7", indoor:"Monday", outdoor:"Thursday"},
+    {clan:"Muir", stage:"P7", indoor:"Monday", outdoor:"Wednesday"}
+  ];
+
+  $('peDaysToggle').addEventListener('click', ()=>{
+    const open = $('peDaysBody').style.display !== 'none';
+    $('peDaysBody').style.display = open ? 'none' : 'block';
+    $('peDaysChevron').textContent = open ? 'Show ▾' : 'Hide ▴';
+  });
+
+  function renderPEDays(){
+    const wrap = $('peDaysList');
+    if(!wrap) return;
+    wrap.innerHTML = '';
+    PE_DAYS.forEach(pe=>{
+      const stages = pe.stage.split('/').map(s=>'P'+s.replace('P',''));
+      const match = stages.some(s=>selectedYears.includes(s));
+      const row = document.createElement('div');
+      row.className = 'pe-row' + (match ? ' match' : '');
+      row.innerHTML = `
+        <div class="pe-clan">${escapeHtml(pe.clan)}</div>
+        <div class="pe-stage">${escapeHtml(pe.stage)}</div>
+        <div class="pe-days">${escapeHtml(pe.indoor)}${pe.outdoor ? ' (indoor) · ' + escapeHtml(pe.outdoor) + ' (outdoor)' : ' only'}</div>
+      `;
+      wrap.appendChild(row);
+    });
+  }
+
+  const SEED_EVENTS = [
+    // Official West Lothian Council term dates / holidays / in-service days
+    {title:"Medication drop-off (9:00–11:00am)", date:"2026-08-11", allSchool:true, years:[]},
+    {title:"School reopens — Term 1 begins (P1 induction plan on the blog)", date:"2026-08-12", allSchool:true, years:[]},
+    {title:"P7 Parent Camp Talk on Teams — Dalguise trip (4:30–5:00pm)", date:"2026-08-19", allSchool:false, years:["P7"]},
+    {title:"Dress Down Day — wear your clan colours (House Captain Election)", date:"2026-08-27", allSchool:true, years:[]},
+    {title:"Dress Down Day — wear your clan colours (House Captain Election Results)", date:"2026-08-28", allSchool:true, years:[]},
+    {title:"Meet the Clan & Champion (4:30–5:10pm or 5:20–6:30pm)", date:"2026-09-03", allSchool:true, years:[]},
+    {title:"Term 1 Learning Letters posted on the blog", date:"2026-09-04", allSchool:true, years:[]},
+    {title:"Parent Council AGM (6:00–8:00pm, the Arena)", date:"2026-09-08", allSchool:true, years:[]},
+    {title:"School closes for September weekend", date:"2026-09-18", allSchool:true, years:[]},
+    {title:"Clan Connects: Aberdeen (2:00–3:00pm)", date:"2026-09-17", allSchool:false, years:["P6"]},
+    {title:"School reopens", date:"2026-09-22", allSchool:true, years:[]},
+    {title:"Sharing the Learning: P2 and P4 (2:00–3:00pm)", date:"2026-09-23", allSchool:false, years:["P2","P4"]},
+    {title:"P7 School Camp: Dalguise", date:"2026-09-23", endDate:"2026-09-25", allSchool:false, years:["P7"]},
+    {title:"Clan Connects: Perth (2:00–3:00pm)", date:"2026-09-24", allSchool:false, years:["P6"]},
+    {title:"iPay opens for Term 2 milk order; Dress Down Day — house colours", date:"2026-10-01", allSchool:true, years:[]},
+    {title:"Clan Connects: Edinburgh (2:00–3:00pm)", date:"2026-10-01", allSchool:false, years:["P6"]},
+    {title:"School Photo Day (Tempest) — P7s wear white shirts", date:"2026-10-06", allSchool:true, years:[]},
+    {title:"Champion Conversations (parent/carer consultations) & book fayre", date:"2026-10-07", endDate:"2026-10-08", allSchool:true, years:[]},
+    {title:"School closes for October holiday", date:"2026-10-16", allSchool:true, years:[]},
+    {title:"October Break — school closed (Nursery open)", date:"2026-10-16", endDate:"2026-10-27", allSchool:true, years:[]},
+    {title:"In-service day (pupils off)", date:"2026-10-26", allSchool:true, years:[]},
+    {title:"School reopens after October holiday", date:"2026-10-27", allSchool:true, years:[]},
+    {title:"Parent Council Halloween Disco (P3–4: 5:45–6:45pm, P5–7: 7:00–8:00pm)", date:"2026-10-29", allSchool:false, years:["P3","P4","P5","P6","P7"]},
+    {title:"P1–2 Halloween Parties", date:"2026-10-30", allSchool:false, years:["P1","P2"]},
+    {title:"Halloween Dress Down Day (no masks, age-appropriate costumes)", date:"2026-10-30", allSchool:true, years:[]},
+    {title:"After School Club Block 1 starts", date:"2026-11-02", allSchool:false, years:["P5","P6","P7"]},
+    {title:"Parent Council Meeting 2 (6:00pm, Arena or Zoom)", date:"2026-11-03", allSchool:true, years:[]},
+    {title:"Sharing the Learning: P3 (2:00–3:00pm)", date:"2026-11-10", allSchool:false, years:["P3"]},
+    {title:"Showcase of Learning: P5 (2:00–3:00pm)", date:"2026-11-10", allSchool:false, years:["P5"]},
+    {title:"Dress Down Day — wear your clan colours", date:"2026-11-11", allSchool:true, years:[]},
+    {title:"Clan Connects: Tummel (2:00–3:00pm)", date:"2026-11-12", allSchool:false, years:["P4"]},
+    {title:"Term 2 Learning Letters & Homework Grids posted on the blog", date:"2026-11-13", allSchool:true, years:[]},
+    {title:"Parent Council Christmas Fayre", date:"2026-11-27", allSchool:true, years:[]},
+    {title:"iPay open for Term 3 milk order (date approximate — source PDF listed 31/11)", date:"2026-11-30", endDate:"2026-12-16", allSchool:true, years:[]},
+    {title:"Mull & Orkney Nativity (9:15am)", date:"2026-12-01", allSchool:false, years:["P1"]},
+    {title:"Bluebell & Bramble (P1s) Nativity (2:00pm)", date:"2026-12-01", allSchool:false, years:["P1"]},
+    {title:"Shetland & Skye Nativity (9:15am)", date:"2026-12-02", allSchool:false, years:["P1"]},
+    {title:"Mull & Orkney Nativity (2:00pm)", date:"2026-12-02", allSchool:false, years:["P1"]},
+    {title:"Bluebell & Bramble Nativity (9:15am)", date:"2026-12-03", allSchool:false, years:["P1"]},
+    {title:"Shetland & Skye Nativity (2:00pm)", date:"2026-12-03", allSchool:false, years:["P1"]},
+    {title:"Rannoch, Tay & Tummel (P4) Christmas Party (AM)", date:"2026-12-04", allSchool:false, years:["P4"]},
+    {title:"Christmas Lunch (pre-order on iPay) — Christmas jumpers allowed", date:"2026-12-08", allSchool:true, years:[]},
+    {title:"P7 (Burns, Macintosh, Muir) Christmas Parties", date:"2026-12-09", allSchool:false, years:["P7"]},
+    {title:"P6 (Edinburgh, Perth, Aberdeen) Christmas Parties", date:"2026-12-10", allSchool:false, years:["P6"]},
+    {title:"Christmas Jumper Day (Dress Down Day)", date:"2026-12-11", allSchool:true, years:[]},
+    {title:"P5 (Ben Lawers, Ben Lomond, Schiehallion) Christmas Parties", date:"2026-12-14", allSchool:false, years:["P5"]},
+    {title:"Ness, Leven, Balmoral & Blair (P3) & Doune, Drummond (P2) Christmas Parties", date:"2026-12-15", allSchool:false, years:["P2","P3"]},
+    {title:"Panto in School (£1.50/child, pay via iPay)", date:"2026-12-16", allSchool:true, years:[]},
+    {title:"P1/P2 (Thistle, Bramble, Bluebell, Shetland, Orkney, Mull, Skye) Christmas Parties", date:"2026-12-17", allSchool:false, years:["P1","P2"]},
+    {title:"Christmas Jumper Day (Dress Down Day)", date:"2026-12-18", allSchool:true, years:[]},
+    {title:"School closes for Christmas", date:"2026-12-18", allSchool:true, years:[]},
+    {title:"School reopens — Term 2 begins", date:"2027-01-05", allSchool:true, years:[]},
+    {title:"Clan Connects: Tay (2:00–3:00pm)", date:"2027-01-14", allSchool:false, years:["P4"]},
+    {title:"Scottish Poetry Recital — Clan Competition", date:"2027-01-15", allSchool:true, years:[]},
+    {title:"P7 Showcase of Learning (2:00pm, the Arena)", date:"2027-01-19", allSchool:false, years:["P7"]},
+    {title:"Clan Connects: Rannoch (2:00–3:00pm)", date:"2027-01-21", allSchool:false, years:["P4"]},
+    {title:"Term 3 Homework Grids & Learning Letters posted on the blog", date:"2027-01-25", allSchool:true, years:[]},
+    {title:"Parent Council Meeting 3 (6:00pm, Arena or Zoom)", date:"2027-01-26", allSchool:true, years:[]},
+    {title:"Scottish Poetry Recital — Clan Winners: P1 (11:00–11:45am)", date:"2027-01-28", allSchool:false, years:["P1"]},
+    {title:"Scottish Poetry Recital — Clan Winners: P2–P4 (1:30–2:15pm)", date:"2027-01-28", allSchool:false, years:["P2","P3","P4"]},
+    {title:"Scottish Poetry Recital — Clan Winners: P5–P7 (2:15–3:00pm)", date:"2027-01-28", allSchool:false, years:["P5","P6","P7"]},
+    {title:"School closes for February holiday", date:"2027-02-05", allSchool:true, years:[]},
+    {title:"In-service day (pupils off)", date:"2027-02-15", allSchool:true, years:[]},
+    {title:"School reopens", date:"2027-02-16", allSchool:true, years:[]},
+    {title:"After School Club Block 2 begins", date:"2027-02-22", allSchool:false, years:["P3","P4"]},
+    {title:"Dress Down Day — World Book Day theme", date:"2027-03-04", allSchool:true, years:[]},
+    {title:"iPay open for Term 4 milk order (source PDF said \"Term 3\" — likely a typo)", date:"2027-03-08", allSchool:true, years:[]},
+    {title:"Dress Down Day — wear your house colours", date:"2027-03-10", allSchool:true, years:[]},
+    {title:"Clan Connects: Ness (2:00–3:00pm)", date:"2027-03-11", allSchool:false, years:["P3"]},
+    {title:"Champion Conversations (parent/carer consultations) & book fayre", date:"2027-03-17", endDate:"2027-03-18", allSchool:true, years:[]},
+    {title:"iPay closes for Term 4 milk order", date:"2027-03-24", allSchool:true, years:[]},
+    {title:"School closes for Easter", date:"2027-03-25", allSchool:true, years:[]},
+    {title:"School reopens — Term 3 begins", date:"2027-04-12", allSchool:true, years:[]},
+    {title:"Sharing the Learning: P1 (2:00–3:00pm)", date:"2027-04-20", allSchool:false, years:["P1"]},
+    {title:"Showcase of Learning: P6 (2:00–3:00pm)", date:"2027-04-20", allSchool:false, years:["P6"]},
+    {title:"Clan Connects: Leven (2:00–3:00pm)", date:"2027-04-22", allSchool:false, years:["P3"]},
+    {title:"Parent Council Meeting 4 (6:00pm, Arena or Zoom)", date:"2027-04-27", allSchool:true, years:[]},
+    {title:"Clan Connects: Blair (2:00–3:00pm)", date:"2027-04-28", allSchool:false, years:["P3"]},
+    {title:"Term 4 Homework Grids & Learning Letters posted on the blog", date:"2027-04-29", allSchool:true, years:[]},
+    {title:"School closes for May holiday", date:"2027-04-30", allSchool:true, years:[]},
+    {title:"May Day holiday", date:"2027-05-03", allSchool:true, years:[]},
+    {title:"School reopens", date:"2027-05-04", allSchool:true, years:[]},
+    {title:"Clan Connects: Balmoral (2:00–3:00pm)", date:"2027-05-05", allSchool:false, years:["P3"]},
+    {title:"In-service day (pupils off)", date:"2027-05-06", allSchool:true, years:[]},
+    {title:"After School Club Block 3 begins", date:"2027-05-13", allSchool:false, years:["P1","P2"]},
+    {title:"Dress Down Day — Festival theme; C in the Park Day", date:"2027-05-15", allSchool:true, years:[]},
+    {title:"P5 Show (1:30pm)", date:"2027-05-19", allSchool:false, years:["P5"]},
+    {title:"P5 Show (6:00pm)", date:"2027-05-20", allSchool:false, years:["P5"]},
+    {title:"Dress Down Day — World Culture Day theme", date:"2027-05-21", allSchool:true, years:[]},
+    {title:"Spring holiday", date:"2027-05-24", allSchool:true, years:[]},
+    {title:"Clan Championships — Sports Day", date:"2027-05-26", allSchool:true, years:[]},
+    {title:"Clan Connects: Doune and Drummond (2:00–3:00pm)", date:"2027-05-27", allSchool:false, years:["P2"]},
+    {title:"Sports Day (back-up date)", date:"2027-06-01", allSchool:true, years:[]},
+    {title:"Dress Down Day — wear your clan colours", date:"2027-06-03", allSchool:true, years:[]},
+    {title:"After School Club Block 3 finishes", date:"2027-06-07", allSchool:false, years:["P1","P2"]},
+    {title:"P1 Meet the Champion — new P1s (3:30–4:00pm)", date:"2027-06-07", allSchool:false, years:["P1"]},
+    {title:"P7 Leavers' Trip", date:"2027-06-08", allSchool:false, years:["P7"]},
+    {title:"Meet the Clan — visit your new clan room", date:"2027-06-08", allSchool:true, years:[]},
+    {title:"School reports sent to parents", date:"2027-06-10", allSchool:true, years:[]},
+    {title:"Clan Connects: Thistle and P2s in Bramble (2:00–3:00pm)", date:"2027-06-10", allSchool:false, years:["P2"]},
+    {title:"East Calder Gala — Choir Performance (5:45–7:00pm)", date:"2027-06-11", allSchool:true, years:[]},
+    {title:"Gala Walk (12:00–2:00pm)", date:"2027-06-12", allSchool:true, years:[]},
+    {title:"Meet the Champion — meet your new teacher", date:"2027-06-15", allSchool:true, years:[]},
+    {title:"Into P1 Transition Evening (5:00–6:00pm)", date:"2027-06-16", allSchool:false, years:["P1"]},
+    {title:"P7 Leavers' Connects to Parents (9:00–10:30am)", date:"2027-06-18", allSchool:false, years:["P7"]},
+    {title:"P7 Celebration (evening)", date:"2027-06-22", allSchool:false, years:["P7"]},
+    {title:"Last day of term — summer holidays begin", date:"2027-06-25", allSchool:true, years:[]}
+  ];
+
+  let entries = [];
+  let settings = {};
+  let events = [];
+  let selectedYears = [];
+  let hideOthers = false;
+  let currentEntryId = null;
+  let editingEventId = null;
+  let gateFoundEntryId = null;
+
+  // ---------------- Load ----------------
+  async function init(){
+    try{
+      const [entriesSnap, settingsSnap, eventsSnap] = await Promise.all([
+        ENTRIES_DOC.get(), SETTINGS_DOC.get(), EVENTS_DOC.get()
+      ]);
+      entries = entriesSnap.exists ? (entriesSnap.data().list || []) : [];
+      settings = settingsSnap.exists ? settingsSnap.data() : {};
+      if(eventsSnap.exists){
+        events = eventsSnap.data().list || [];
+      }else{
+        events = SEED_EVENTS.map(e => ({...e, id: 'seed_'+Math.random().toString(36).slice(2,9)}));
+        await EVENTS_DOC.set({ list: events });
+      }
+      renderYearChips();
+      renderEvents();
+      $('loadingMsg').style.display = 'none';
+      $('mainContent').style.display = 'block';
+    }catch(err){
+      $('loadingMsg').textContent = "Couldn't load — check your connection and try refreshing.";
+    }
+  }
+
+  // ---------------- Year filter ----------------
+  function renderYearChips(){
+    const wrap = $('yearChips');
+    wrap.innerHTML = '';
+    YEAR_GROUPS.forEach(y=>{
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'year-chip' + (selectedYears.includes(y) ? ' active' : '');
+      chip.textContent = y;
+      chip.onclick = ()=>{
+        if(selectedYears.includes(y)) selectedYears = selectedYears.filter(x=>x!==y);
+        else selectedYears.push(y);
+        renderYearChips();
+        renderEvents();
+        if(currentEntryId) saveFilter();
+      };
+      wrap.appendChild(chip);
+    });
+    renderPEDays();
+  }
+  $('hideOthers').addEventListener('change', ()=>{
+    hideOthers = $('hideOthers').checked;
+    renderEvents();
+  });
+
+  function isRelevant(ev){
+    if(ev.allSchool) return true;
+    if(!ev.years || ev.years.length===0) return false;
+    return ev.years.some(y=>selectedYears.includes(y));
+  }
+
+  // ---------------- Events list ----------------
+  function renderEvents(){
+    const wrap = $('eventsWrap');
+    wrap.innerHTML = '';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const sorted = [...events].sort((a,b)=> a.date.localeCompare(b.date));
+    const upcoming = sorted.filter(ev => parseISO(ev.date) >= today);
+    const list = upcoming.length ? upcoming : sorted;
+
+    if(list.length === 0){
+      wrap.innerHTML = '<div class="empty">No events yet.</div>';
+      return;
+    }
+
+    let lastMonth = '';
+    list.forEach(ev=>{
+      const d = parseISO(ev.date);
+      const monthKey = d.getFullYear()+'-'+d.getMonth();
+      if(monthKey !== lastMonth){
+        const h = document.createElement('div');
+        h.className = 'month-heading';
+        h.textContent = MON[d.getMonth()] + ' ' + d.getFullYear();
+        wrap.appendChild(h);
+        lastMonth = monthKey;
+      }
+
+      const relevant = isRelevant(ev);
+      if(hideOthers && !relevant) return;
+
+      const row = document.createElement('div');
+      row.className = 'event-row' + (!relevant && !ev.allSchool && selectedYears.length ? ' dimmed' : '');
+
+      const dateBox = document.createElement('div');
+      dateBox.className = 'event-date';
+      dateBox.innerHTML = `<div class="dow">${DOW[d.getDay()]}</div><div class="dnum">${d.getDate()}</div><div class="mon">${MON[d.getMonth()]}</div>`;
+      row.appendChild(dateBox);
+
+      const body = document.createElement('div');
+      body.className = 'event-body';
+      let tagsHtml = '';
+      if(ev.allSchool){
+        tagsHtml = '<span class="tag all-school">All school</span>';
+      }else{
+        tagsHtml = (ev.years||[]).map(y=>`<span class="tag">${escapeHtml(y)}</span>`).join('');
+      }
+      body.innerHTML = `
+        <div class="event-title">${escapeHtml(ev.title)}${ev.endDate ? ' – ' + escapeHtml(ev.endDate) : ''}</div>
+        <div class="event-tags">${tagsHtml}</div>
+        <div class="event-manage"><button data-id="${ev.id}" class="edit-ev-btn">Edit</button></div>
+      `;
+      body.querySelector('.edit-ev-btn').onclick = ()=> openEventModal(ev.id);
+      row.appendChild(body);
+      wrap.appendChild(row);
+    });
+  }
+
+  // ---------------- Remember filter (household) ----------------
+  $('openFindHousehold').onclick = ()=>{
+    $('hhFindInput').value = '';
+    $('hhFindResults').innerHTML = '';
+    $('hhPasscodeStep').style.display = 'none';
+    $('findOverlay').classList.add('open');
+  };
+  $('closeFindOverlay').onclick = ()=> $('findOverlay').classList.remove('open');
+  $('findOverlay').addEventListener('click', (e)=>{ if(e.target.id==='findOverlay') $('findOverlay').classList.remove('open'); });
+
+  $('hhFindInput').addEventListener('input', ()=>{
+    const q = $('hhFindInput').value.trim().toLowerCase();
+    const wrap = $('hhFindResults');
+    wrap.innerHTML = '';
+    $('hhPasscodeStep').style.display = 'none';
+    if(!q) return;
+    const matches = entries.filter(en=>(en.household||'').toLowerCase().includes(q)).slice(0,8);
+    if(matches.length===0){ wrap.innerHTML = '<div class="field-hint">No household matches that name.</div>'; return; }
+    matches.forEach(en=>{
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn secondary small';
+      b.style.cssText = 'display:block; width:100%; text-align:left; margin-bottom:6px;';
+      b.textContent = en.household;
+      b.onclick = ()=>{
+        gateFoundEntryId = en.id;
+        $('hhHouseholdName').textContent = en.household;
+        $('hhStatus').innerHTML = '';
+        $('hhPasscodeInput').value = '';
+        $('hhPasscodeStep').style.display = 'block';
+        $('hhPasscodeInput').focus();
+      };
+      wrap.appendChild(b);
+    });
+  });
+
+  $('hhUnlockBtn').onclick = async ()=>{
+    const val = $('hhPasscodeInput').value;
+    if(!val || !gateFoundEntryId) return;
+    const en = entries.find(e=>e.id===gateFoundEntryId);
+    if(!en) return;
+    try{
+      const hash = await hashText(val);
+      if(hash !== en.passcodeHash){
+        $('hhStatus').innerHTML = '<div class="status-msg error">That passcode doesn\'t match.</div>';
+        return;
+      }
+      currentEntryId = en.id;
+      $('findOverlay').classList.remove('open');
+      $('rememberPrompt').style.display = 'none';
+      $('rememberedAs').style.display = 'block';
+      $('rememberedName').textContent = en.household;
+      const snap = await filterDocFor(en.id).get();
+      if(snap.exists && snap.data().years){
+        selectedYears = snap.data().years;
+        renderYearChips();
+        renderEvents();
+      }else{
+        await saveFilter();
+      }
+    }catch(err){
+      $('hhStatus').innerHTML = '<div class="status-msg error">Something went wrong — try again.</div>';
+    }
+  };
+  $('forgetHousehold').onclick = ()=>{
+    currentEntryId = null;
+    $('rememberPrompt').style.display = 'block';
+    $('rememberedAs').style.display = 'none';
+  };
+  async function saveFilter(){
+    if(!currentEntryId) return;
+    try{ await filterDocFor(currentEntryId).set({ years: selectedYears }); }catch(e){}
+  }
+
+  // ---------------- Admin: add/edit/delete events ----------------
+  let adminUnlocked = false;
+  let pendingAdminAction = null;
+  function requireAdmin(action){
+    if(adminUnlocked){ action(); return; }
+    pendingAdminAction = action;
+    $('adminPasscodeInput').value = '';
+    $('adminStatus').innerHTML = '';
+    $('adminOverlay').classList.add('open');
+  }
+  $('closeAdminOverlay').onclick = ()=>{ pendingAdminAction=null; $('adminOverlay').classList.remove('open'); };
+  $('adminOverlay').addEventListener('click', (e)=>{ if(e.target.id==='adminOverlay'){ pendingAdminAction=null; $('adminOverlay').classList.remove('open'); } });
+  $('adminUnlockBtn').onclick = async ()=>{
+    const val = $('adminPasscodeInput').value;
+    if(!val) return;
+    if(!settings.adminPasscodeHash){
+      $('adminStatus').innerHTML = '<div class="status-msg error">No admin passcode is set yet — set one in the directory\'s "Edit page details."</div>';
+      return;
+    }
+    try{
+      const hash = await hashText(val);
+      if(hash === settings.adminPasscodeHash){
+        adminUnlocked = true;
+        $('adminOverlay').classList.remove('open');
+        if(pendingAdminAction){ const fn = pendingAdminAction; pendingAdminAction=null; fn(); }
+      }else{
+        $('adminStatus').innerHTML = '<div class="status-msg error">That passcode doesn\'t match.</div>';
+      }
+    }catch(err){
+      $('adminStatus').innerHTML = '<div class="status-msg error">Something went wrong — try again.</div>';
+    }
+  };
+
+  function renderYearCheckboxes(checked){
+    const wrap = $('ev_years_checkboxes');
+    wrap.innerHTML = '';
+    YEAR_GROUPS.forEach(y=>{
+      const id = 'evyear_'+y;
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" id="${id}" value="${y}" ${((checked||[]).includes(y))?'checked':''}> ${y}`;
+      wrap.appendChild(label);
+    });
+  }
+  $('ev_all_school').addEventListener('change', ()=>{
+    $('ev_years_wrap').style.display = $('ev_all_school').checked ? 'none' : 'block';
+  });
+
+  function openEventModalDirect(id){
+    editingEventId = id || null;
+    $('eventStatus').innerHTML = '';
+    if(id){
+      const ev = events.find(e=>e.id===id);
+      $('eventModalTitle').textContent = 'Edit event';
+      $('ev_title').value = ev.title || '';
+      $('ev_date').value = ev.date || '';
+      $('ev_end_date').value = ev.endDate || '';
+      $('ev_all_school').checked = !!ev.allSchool;
+      renderYearCheckboxes(ev.years||[]);
+      $('ev_years_wrap').style.display = ev.allSchool ? 'none' : 'block';
+      $('deleteEventBtn').style.display = 'inline-block';
+    }else{
+      $('eventModalTitle').textContent = 'Add event';
+      $('ev_title').value = '';
+      $('ev_date').value = '';
+      $('ev_end_date').value = '';
+      $('ev_all_school').checked = false;
+      renderYearCheckboxes([]);
+      $('ev_years_wrap').style.display = 'block';
+      $('deleteEventBtn').style.display = 'none';
+    }
+    $('eventOverlay').classList.add('open');
+  }
+  function openEventModal(id){ requireAdmin(()=> openEventModalDirect(id)); }
+  $('addEventBtn').onclick = ()=> requireAdmin(()=> openEventModalDirect(null));
+
+  // ---------------- Bulk sync ----------------
+  $('bulkSyncBtn').onclick = ()=> requireAdmin(()=>{
+    $('bulkSyncInput').value = '';
+    $('bulkSyncStatus').innerHTML = '';
+    $('bulkSyncOverlay').classList.add('open');
+  });
+  $('closeBulkSync').onclick = ()=> $('bulkSyncOverlay').classList.remove('open');
+  $('bulkSyncOverlay').addEventListener('click', (e)=>{ if(e.target.id==='bulkSyncOverlay') $('bulkSyncOverlay').classList.remove('open'); });
+
+  $('applyBulkSyncBtn').onclick = async ()=>{
+    let incoming;
+    try{
+      incoming = JSON.parse($('bulkSyncInput').value);
+      if(!Array.isArray(incoming)) throw new Error('not an array');
+    }catch(err){
+      $('bulkSyncStatus').innerHTML = '<div class="status-msg error">That doesn\'t look like valid JSON — check it\'s a plain array of event objects.</div>';
+      return;
+    }
+    let added = 0, updated = 0;
+    incoming.forEach(inc=>{
+      if(!inc.title || !inc.date) return;
+      const key = (t,d)=> (t||'').trim().toLowerCase() + '|' + d;
+      const match = events.find(e => key(e.title,e.date) === key(inc.title,inc.date));
+      if(match){
+        match.title = inc.title;
+        match.date = inc.date;
+        match.endDate = inc.endDate || '';
+        match.allSchool = !!inc.allSchool;
+        match.years = inc.years || [];
+        updated++;
+      }else{
+        events.push({
+          id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+          title: inc.title, date: inc.date, endDate: inc.endDate || '',
+          allSchool: !!inc.allSchool, years: inc.years || []
+        });
+        added++;
+      }
+    });
+    const btn = $('applyBulkSyncBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try{
+      await saveEvents();
+      $('bulkSyncStatus').innerHTML = `<div class="status-msg ok">Done — ${added} added, ${updated} updated.</div>`;
+      renderEvents();
+    }catch(err){
+      $('bulkSyncStatus').innerHTML = '<div class="status-msg error">Could not save — check your connection and try again.</div>';
+    }finally{
+      btn.disabled = false; btn.textContent = 'Apply';
+    }
+  };
+
+  $('closeEventOverlay').onclick = ()=> $('eventOverlay').classList.remove('open');
+  $('eventOverlay').addEventListener('click', (e)=>{ if(e.target.id==='eventOverlay') $('eventOverlay').classList.remove('open'); });
+
+  async function saveEvents(){
+    await EVENTS_DOC.set({ list: events });
+  }
+
+  $('saveEventBtn').onclick = async ()=>{
+    const title = $('ev_title').value.trim();
+    const date = $('ev_date').value;
+    if(!title || !date){
+      $('eventStatus').innerHTML = '<div class="status-msg error">Title and date are needed.</div>';
+      return;
+    }
+    const allSchool = $('ev_all_school').checked;
+    const years = allSchool ? [] : YEAR_GROUPS.filter(y=>$('ev_years_checkboxes').querySelector(`#evyear_${y}`).checked);
+    const ev = {
+      id: editingEventId || (Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
+      title, date, endDate: $('ev_end_date').value || '', allSchool, years
+    };
+    const btn = $('saveEventBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try{
+      if(editingEventId) events = events.map(e=>e.id===editingEventId ? ev : e);
+      else events.push(ev);
+      await saveEvents();
+      $('eventOverlay').classList.remove('open');
+      renderEvents();
+    }catch(err){
+      $('eventStatus').innerHTML = '<div class="status-msg error">Could not save — try again.</div>';
+    }finally{
+      btn.disabled = false; btn.textContent = 'Save event';
+    }
+  };
+  $('deleteEventBtn').onclick = async ()=>{
+    if(!editingEventId) return;
+    if(!confirm('Remove this event?')) return;
+    events = events.filter(e=>e.id!==editingEventId);
+    try{ await saveEvents(); }catch(err){}
+    $('eventOverlay').classList.remove('open');
+    renderEvents();
+  };
+
+  // ---------------- .ics export ----------------
+  function icsEscape(str){
+    return (str||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,');
+  }
+  function isoToIcsDate(iso){ return iso.replace(/-/g,''); }
+  function addOneDay(iso){
+    const d = parseISO(iso);
+    d.setDate(d.getDate()+1);
+    return toISO(d);
+  }
+  $('exportIcsBtn').onclick = ()=>{
+    const chosen = events.filter(isRelevant);
+    if(chosen.length === 0){
+      alert('No events match your current selection yet.');
+      return;
+    }
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+    let lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Snowdrop Path//School Diary//EN','CALSCALE:GREGORIAN'];
+    chosen.forEach(ev=>{
+      const endIso = addOneDay(ev.endDate || ev.date);
+      lines.push('BEGIN:VEVENT');
+      lines.push('UID:'+ev.id+'@snowdroppath.com');
+      lines.push('DTSTAMP:'+stamp);
+      lines.push('DTSTART;VALUE=DATE:'+isoToIcsDate(ev.date));
+      lines.push('DTEND;VALUE=DATE:'+isoToIcsDate(endIso));
+      lines.push('SUMMARY:'+icsEscape(ev.title));
+      lines.push('DESCRIPTION:'+icsEscape(ev.allSchool ? 'All school' : (ev.years||[]).join(', ')));
+      lines.push('END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    const blob = new Blob([lines.join('\r\n')], {type:'text/calendar'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'calderwood-school-diary.ics';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  init();
+})();
+</script>
+</body>
+</html>
