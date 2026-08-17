@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bin Day — Snowdrop Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F3EC; --paper-raised:#FFFFFF; --ink:#2B2924; --ink-soft:#6B675F;
+    --line:#DED6C7; --path:#3F6C6B; --path-soft:#DCE7E6; --brick:#A85A3E;
+    --brick-soft:#F1DFD6; --sage:#5E7A52; --sage-soft:#E3E9DC; --mustard:#C1922E; --mustard-soft:#F3E7CE;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html{ overflow-x:hidden; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Public Sans', system-ui, sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  h1,h2,h3{ font-family:'Fraunces', Georgia, serif; font-weight:600; margin:0; letter-spacing:-0.01em; }
+  .eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--path); }
+  a{ color:var(--path); }
+  button{ font-family:inherit; }
+  .wrap{ max-width:680px; margin:0 auto; padding:0 20px 80px; }
+
+  .site-nav{ display:flex; flex-wrap:wrap; row-gap:4px; gap:4px; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .site-nav a{
+    font-family:'IBM Plex Mono', monospace; font-size:0.78rem; letter-spacing:0.02em;
+    padding:8px 4px; margin-right:20px; color:var(--ink-soft); text-decoration:none;
+    border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap;
+  }
+  .site-nav a.active{ color:var(--ink); border-bottom-color:var(--path); font-weight:600; }
+  @media (max-width:400px){
+    .site-nav a{ font-size:0.72rem; margin-right:12px; padding:7px 2px; }
+  }
+
+  header.hero{ padding:36px 0 8px; }
+  .hero-title{ font-size:clamp(1.8rem, 5vw, 2.4rem); margin-top:6px; }
+  .hero-sub{ color:var(--ink-soft); max-width:58ch; margin-top:10px; font-size:1rem; }
+
+  .btn{ border:1px solid var(--ink); background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:999px; font-size:0.92rem; font-weight:600; cursor:pointer; }
+  .btn:hover{ opacity:0.85; }
+  .btn.secondary{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn.small{ padding:7px 14px; font-size:0.82rem; }
+  .field-hint{ font-size:0.78rem; color:var(--ink-soft); margin-top:4px; }
+
+  .card{ background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-top:16px; }
+
+  .next-banner{
+    margin-top:20px; padding:18px; border-radius:var(--radius); background:var(--sage-soft);
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .next-banner .swatch{ width:38px; height:38px; border-radius:10px; flex-shrink:0; }
+  .next-banner .label{ font-family:'IBM Plex Mono', monospace; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--sage); }
+  .next-banner .title{ font-family:'Fraunces', serif; font-weight:600; font-size:1.15rem; }
+  .next-banner .when{ color:var(--ink-soft); font-size:0.9rem; }
+
+  .legend{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .legend-item{ display:flex; align-items:center; gap:7px; font-size:0.82rem; color:var(--ink-soft); }
+  .legend-swatch{ width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+
+  .row{ display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
+  .row:first-child{ border-top:none; }
+  .row .date-box{ flex:0 0 58px; text-align:center; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:6px 4px; }
+  .row .date-box .dow{ font-family:'IBM Plex Mono', monospace; font-size:0.62rem; color:var(--ink-soft); text-transform:uppercase; }
+  .row .date-box .dnum{ font-family:'Fraunces', serif; font-weight:600; font-size:1.1rem; line-height:1.1; }
+  .row .date-box .mon{ font-size:0.66rem; color:var(--ink-soft); }
+  .row .bins{ flex:1; display:flex; flex-wrap:wrap; gap:8px; }
+  .bin-tag{ display:flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:600; padding:5px 10px; border-radius:999px; }
+  .bin-tag .dot{ width:9px; height:9px; border-radius:50%; }
+
+  footer{ margin-top:40px; padding-top:20px; border-top:1px solid var(--line); font-size:0.82rem; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <nav class="site-nav">
+      <a href="/">🏘️&nbsp;People</a>
+      <a href="/diary.html">📅&nbsp;School Diary</a>
+      <a href="/lunch.html">🍱&nbsp;School Lunches</a>
+      <a href="/bins.html" class="active">🗑️&nbsp;Bin Day</a>
+    </nav>
+    <div class="eyebrow">Snowdrop Path · West Lothian Council</div>
+    <h1 class="hero-title">Bin Day</h1>
+    <p class="hero-sub">Confirmed for Snowdrop Path from the council's own postcode lookup. Bins out by 7am — collections can run until 7pm.</p>
+  </header>
+
+  <div id="nextBanner"></div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <h2 style="font-size:1.05rem;">Add reminders to your calendar</h2>
+      <button class="btn secondary small" id="exportIcsBtn">Download .ics</button>
+    </div>
+    <p class="field-hint">One recurring reminder per bin — add it once and it keeps going, no need to re-download when the calendar refreshes. Works with Apple Calendar, Google Calendar, and Outlook.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:1.05rem;">Upcoming collections</h2>
+    <div id="upcomingList" style="margin-top:6px;"></div>
+  </div>
+
+  <footer>
+    Confirmed 17 August 2026 via the council's postcode lookup for 79 Snowdrop Path, East Calder EH53 0FN. Streets are grouped by round, so this should hold for the whole street — but if your bin ever goes out on a different day, let the page organiser know and this can be corrected.
+    Brown = garden &amp; food waste · Grey = general waste · Blue = paper &amp; card · Green = plastics, cans &amp; cartons.
+    Check <a href="https://www.westlothian.gov.uk/bins" target="_blank" rel="noopener">westlothian.gov.uk/bins</a> for holiday disruption or missed-bin reporting.
+  </footer>
+</div>
+
+<script>
+(function(){
+  const BINS = [
+    {key:'brown', name:'Brown Bin', note:'Garden & food waste', color:'#A85A3E', soft:'#F1DFD6', anchor:'2026-08-18', weeks:2},
+    {key:'grey',  name:'Grey Bin',  note:'General waste',       color:'#6B675F', soft:'#E4E0D6', anchor:'2026-08-20', weeks:2},
+    {key:'blue',  name:'Blue Bin',  note:'Paper & card',        color:'#3F6C6B', soft:'#DCE7E6', anchor:'2026-08-27', weeks:4},
+    {key:'green', name:'Green Bin', note:'Plastics, cans & cartons', color:'#5E7A52', soft:'#E3E9DC', anchor:'2026-09-10', weeks:4}
+  ];
+
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function toISO(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function parseISO(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  function addDays(d,n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+
+  function occurrencesFrom(bin, count){
+    const intervalDays = bin.weeks*7;
+    let cur = parseISO(bin.anchor);
+    const today = new Date(); today.setHours(0,0,0,0);
+    while(cur < today){ cur = addDays(cur, intervalDays); }
+    const out = [];
+    for(let i=0;i<count;i++){ out.push(new Date(cur)); cur = addDays(cur, intervalDays); }
+    return out;
+  }
+
+  function renderNextBanner(){
+    // find the single soonest occurrence across all bins
+    let soonest = null, soonestBin = null;
+    BINS.forEach(bin=>{
+      const [next] = occurrencesFrom(bin, 1);
+      if(!soonest || next < soonest){ soonest = next; soonestBin = bin; }
+    });
+    const wrap = document.getElementById('nextBanner');
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dayLabel = (soonest.getTime()===today.getTime()) ? 'Today' :
+      (soonest.getTime()===addDays(today,1).getTime()) ? 'Tomorrow' :
+      `${DOW[soonest.getDay()]} ${soonest.getDate()} ${MON[soonest.getMonth()]}`;
+    wrap.innerHTML = `
+      <div class="next-banner" style="background:${soonestBin.soft};">
+        <div class="swatch" style="background:${soonestBin.color};"></div>
+        <div>
+          <div class="label" style="color:${soonestBin.color};">Next collection</div>
+          <div class="title">${soonestBin.name} — ${soonestBin.note}</div>
+          <div class="when">${dayLabel}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderLegend(){
+    document.getElementById('legend').innerHTML = BINS.map(b=>`
+      <div class="legend-item"><span class="legend-swatch" style="background:${b.color};"></span>${b.name} — ${b.note}</div>
+    `).join('');
+  }
+
+  function renderUpcoming(){
+    const all = [];
+    BINS.forEach(bin=>{
+      occurrencesFrom(bin, 6).forEach(d=> all.push({date:d, bin}));
+    });
+    // group by date
+    const byDate = {};
+    all.forEach(entry=>{
+      const key = toISO(entry.date);
+      if(!byDate[key]) byDate[key] = {date:entry.date, bins:[]};
+      byDate[key].bins.push(entry.bin);
+    });
+    const sorted = Object.values(byDate).sort((a,b)=> a.date - b.date).slice(0,10);
+    document.getElementById('upcomingList').innerHTML = sorted.map(row=>{
+      const d = row.date;
+      const binTags = row.bins.map(b=>`<span class="bin-tag" style="background:${b.soft}; color:${b.color};"><span class="dot" style="background:${b.color};"></span>${b.name}</span>`).join('');
+      return `
+        <div class="row">
+          <div class="date-box">
+            <div class="dow">${DOW[d.getDay()]}</div>
+            <div class="dnum">${d.getDate()}</div>
+            <div class="mon">${MON[d.getMonth()]}</div>
+          </div>
+          <div class="bins">${binTags}</div>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('exportIcsBtn').addEventListener('click', ()=>{
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+    let lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Snowdrop Path//Bin Day//EN','CALSCALE:GREGORIAN'];
+    BINS.forEach(bin=>{
+      const anchorIcs = bin.anchor.replace(/-/g,'');
+      const endIso = toISO(addDays(parseISO(bin.anchor),1)).replace(/-/g,'');
+      lines.push('BEGIN:VEVENT');
+      lines.push('UID:bin-'+bin.key+'@snowdroppath.com');
+      lines.push('DTSTAMP:'+stamp);
+      lines.push('DTSTART;VALUE=DATE:'+anchorIcs);
+      lines.push('DTEND;VALUE=DATE:'+endIso);
+      lines.push('RRULE:FREQ=WEEKLY;INTERVAL='+bin.weeks);
+      lines.push('SUMMARY:'+bin.name+' — '+bin.note);
+      lines.push('END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    const blob = new Blob([lines.join('\r\n')], {type:'text/calendar'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'snowdrop-path-bin-days.ics';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  renderNextBanner();
+  renderLegend();
+  renderUpcoming();
+})();
+</script>
+</body>
+</html>
